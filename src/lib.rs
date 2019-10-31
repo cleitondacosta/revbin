@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufReader;
+use std::io::BufWriter;
+
+const BUFFER_SIZE: usize = 32;
 
 pub struct Config {
     input_file: PathBuf,
@@ -28,20 +32,23 @@ impl Config {
     }
 
     pub fn run(&self) -> Result<(), &'static str> {
-        let mut input_file_pointer = match File::open(&self.input_file) {
+        let input_file_pointer = match File::open(&self.input_file) {
             Ok(file) => file,
             Err(_) => return Err("Could not open INPUT_FILE."),
         };
 
-        let mut output_file_pointer = match File::create(&self.output_file) {
+        let output_file_pointer = match File::create(&self.output_file) {
             Ok(file) => file,
             Err(_) => return Err("Could not create OUTPUT_FILE."),
         };
 
-        let mut buffer: [u8; 10] = [0; 10];
+        let mut reader = BufReader::new(input_file_pointer);
+        let mut writer = BufWriter::new(output_file_pointer);
+
+        let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 
         loop {
-            let n_bytes_readed = match input_file_pointer.read(&mut buffer) {
+            let n_bytes_readed = match reader.read(&mut buffer) {
                 Ok(readed) => readed,
                 Err(_) => return Err("Could not read file INPUT_FILE"),
             };
@@ -52,7 +59,7 @@ impl Config {
 
             let reverted_bytes = Config::not_bytes(&buffer[..n_bytes_readed]);
 
-            if let Err(_) = output_file_pointer.write_all(&reverted_bytes[..n_bytes_readed]) {
+            if let Err(_) = writer.write_all(&reverted_bytes[..n_bytes_readed]) {
                 return Err("Could not write reverted bytes to OUTPUT_FILE");
             }
         }
@@ -60,8 +67,8 @@ impl Config {
         Ok(())
     }
 
-    fn not_bytes(bytes: &[u8]) -> [u8; 10] {
-        let mut reverted_bytes: [u8; 10] = [0; 10];
+    fn not_bytes(bytes: &[u8]) -> [u8; BUFFER_SIZE] {
+        let mut reverted_bytes: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 
         for (i, byte) in bytes.iter().enumerate() {
            reverted_bytes[i] = !byte; 
