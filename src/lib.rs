@@ -4,7 +4,6 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::BufWriter;
 
-const BUFFER_SIZE: usize = 32;
 
 pub struct Config {
     input_file: PathBuf,
@@ -32,6 +31,8 @@ impl Config {
     }
 
     pub fn run(&self) -> Result<(), &'static str> {
+        const BUFFER_SIZE: usize = 32;
+
         let input_file_pointer = match File::open(&self.input_file) {
             Ok(file) => file,
             Err(_) => return Err("Could not open INPUT_FILE."),
@@ -59,7 +60,7 @@ impl Config {
 
             let reverted_bytes = Config::not_bytes(&buffer[..n_bytes_readed]);
 
-            if let Err(_) = writer.write_all(&reverted_bytes[..n_bytes_readed]) {
+            if let Err(_) = writer.write_all(&reverted_bytes) {
                 return Err("Could not write reverted bytes to OUTPUT_FILE");
             }
         }
@@ -67,13 +68,7 @@ impl Config {
         Ok(())
     }
 
-    fn not_bytes(bytes: &[u8]) -> [u8; BUFFER_SIZE] {
-        let mut reverted_bytes: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
-
-        for (i, byte) in bytes.iter().enumerate() {
-           reverted_bytes[i] = !byte; 
-        }
-
-        reverted_bytes
+    pub fn not_bytes(bytes: &[u8]) -> Vec<u8> {
+        bytes.iter().map(|byte| !byte).collect()
     }
 }
