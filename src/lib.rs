@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::io::BufWriter;
-
+use std::io;
+use std::io::{Read, BufReader};
+use std::io::{Write, BufWriter};
 
 pub struct Config {
     input_file: PathBuf,
@@ -30,29 +29,18 @@ impl Config {
         Ok(Config { input_file, output_file })
     }
 
-    pub fn run(&self) -> Result<(), &'static str> {
-        const BUFFER_SIZE: usize = 32;
-
-        let input_file_pointer = match File::open(&self.input_file) {
-            Ok(file) => file,
-            Err(_) => return Err("Could not open INPUT_FILE."),
-        };
-
-        let output_file_pointer = match File::create(&self.output_file) {
-            Ok(file) => file,
-            Err(_) => return Err("Could not create OUTPUT_FILE."),
-        };
+    pub fn run(&self) -> Result<(), io::Error> {
+        let input_file_pointer = File::open(&self.input_file)?;
+        let output_file_pointer = File::create(&self.output_file)?;
 
         let mut reader = BufReader::new(input_file_pointer);
         let mut writer = BufWriter::new(output_file_pointer);
 
+        const BUFFER_SIZE: usize = 32;
         let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 
         loop {
-            let n_bytes_readed = match reader.read(&mut buffer) {
-                Ok(readed) => readed,
-                Err(_) => return Err("Could not read file INPUT_FILE"),
-            };
+            let n_bytes_readed = reader.read(&mut buffer)?;
 
             if n_bytes_readed == 0 {
                 break;
@@ -60,9 +48,7 @@ impl Config {
 
             let reverted_bytes = Config::not_bytes(&buffer[..n_bytes_readed]);
 
-            if let Err(_) = writer.write_all(&reverted_bytes) {
-                return Err("Could not write reverted bytes to OUTPUT_FILE");
-            }
+            writer.write_all(&reverted_bytes)?;
         }
 
         Ok(())
